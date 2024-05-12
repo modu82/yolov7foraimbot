@@ -51,11 +51,31 @@ class BaseEngine(object):
 
         return [out['host'] for out in self.outputs]
 
-    def inference(self, image_rgb):
-        img = np.ascontiguousarray(image_rgb.transpose(2,0,1)/255.0, dtype=np.float32)
+    # def inference(self, image_rgb):
+    #     img = np.ascontiguousarray(image_rgb.transpose(2,0,1)/255.0, dtype=np.float32)
+    #     num, final_boxes, final_scores, final_cls_inds = self.forward(img)
+    #     final_boxes = np.reshape(final_boxes, (-1, 4)).astype(np.int32)
+    #     num = num[0]
+    #     return num, final_boxes, final_scores, final_cls_inds
+
+    def inference(self, image_rgb, conf_threshold=0.65):
+        # Preprocess the image and run forward pass to get raw outputs
+        img = np.ascontiguousarray(image_rgb.transpose(2, 0, 1) / 255.0, dtype=np.float32)
         num, final_boxes, final_scores, final_cls_inds = self.forward(img)
+
+        # Reshape the outputs to the correct format
         final_boxes = np.reshape(final_boxes, (-1, 4)).astype(np.int32)
-        num = num[0]
+        final_scores = np.reshape(final_scores, (-1, 1)).astype(np.float32)
+        final_cls_inds = np.reshape(final_cls_inds, (-1, 1)).astype(np.int32)
+        num = int(num[0])
+
+        # Filter out detections with scores lower than the confidence threshold
+        valid_indices = np.where(final_scores >= conf_threshold)[0]
+        final_boxes = final_boxes[valid_indices]
+        final_scores = final_scores[valid_indices]
+        final_cls_inds = final_cls_inds[valid_indices]
+        num = len(valid_indices)
+
         return num, final_boxes, final_scores, final_cls_inds
 
 def precise_sleep(sleep_time):
