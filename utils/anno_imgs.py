@@ -1,5 +1,5 @@
 import os
-from .InferenceEngine import screen_shot_init,get_screen_shot, BaseEngine
+from InferenceEngine import  BaseEngine
 from tensorrt_python.export_to_trt import export_to_trt
 import argparse
 import cv2
@@ -13,18 +13,18 @@ def xyxy2xywh(box):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='YOLOV7')
-    parser.add_argument('--onnx_path', type=str, default='weights/best.onnx', help='onnx path')
-    parser.add_argument('--engine_path', type=str, default='weights/best.trt', help='model path')
-    parser.add_argument('--data_dir', type=str, default='data', help='data dir')
+    parser.add_argument('--onnx_path', type=str, default='../weights/best.onnx', help='onnx path')
+    parser.add_argument('--engine_path', type=str, default='../weights/best.trt', help='model path')
+    parser.add_argument('--data_dir', type=str, default='C:/Program Files/ApexGGBond/', help='data dir')
     args = parser.parse_args()
 
     if not os.path.exists(args.engine_path):
         print('---------------------Building engine, please wait for a while (about 10 mins)---------------------')
         export_to_trt(onnx=args.onnx_path, engine=args.engine_path)
 
-    image_dir = os.path.join(args.data_dir, 'images')
+    image_dir = os.path.join(args.data_dir, 'screenshot')
     assert os.path.exists(image_dir)
-    label_dir = os.path.join(args.data_dir, 'labels')
+    label_dir = os.path.join(args.data_dir, 'screenshot')
     if not os.path.exists(label_dir):
         os.mkdir(label_dir)
     engine = BaseEngine(args.engine_path)
@@ -33,8 +33,13 @@ if __name__ == '__main__':
         if not os.path.splitext(image_name)[-1].lower() in EXTENSION:
             continue
         image_path = os.path.join(image_dir, image_name)
-        image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+        image = cv2.imread(image_path)
+        if image is None:
+            print(f"Failed to load image at {image_path}")
+            continue
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = cv2.resize(image, (640, 640))
+        # 其余的处理代码保持不变
         num, final_boxes, final_scores, final_cls_inds = engine.inference(image)
         final_boxes = final_boxes/640
         txt_list = []

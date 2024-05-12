@@ -18,8 +18,7 @@ class BaseEngine(object):
         runtime = trt.Runtime(logger)
         fw = Fernet(encryp_password)
         with open(engine_path, "rb") as f:
-            serialized_engine = fw.decrypt(f.read())
-            
+            serialized_engine = f.read()
         engine = runtime.deserialize_cuda_engine(serialized_engine)
         self.context = engine.create_execution_context()
         self.inputs, self.outputs, self.bindings = [], [], []
@@ -63,5 +62,5 @@ def precise_sleep(sleep_time):
     start_time = time.time()
     while True:
         if time.time()-start_time>=sleep_time:
-            break
+            break 
     
