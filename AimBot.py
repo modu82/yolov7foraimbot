@@ -16,10 +16,11 @@ import yaml
 from multiprocessing import Process, Queue
 
 class AimBot:
-    def __init__(self, config_path='configs/default.yaml', onnx_path='weights/best.onnx', engine_path='weights/best.trt'):
+    def __init__(self, config_path='configs/apex.yaml', onnx_path='weights/best.onnx', engine_path='weights/best.trt'):
         config = yaml.load(open(config_path, 'r', encoding='UTF-8'), Loader=yaml.FullLoader)
+        self.controller = Controller()
         self.args = argparse.Namespace(**config)
-
+        self.shooting_mode = False
         self.initialize_params()    
         self.build_trt_model(onnx_path, engine_path)
         
@@ -92,6 +93,11 @@ class AimBot:
                 self.locking = False
                 print('OFF')
 
+        if button == getattr(Button, self.args.mouse_button_1) and pressed:
+            self.shooting_mode = True  # 启用自动射击模式
+        elif button == getattr(Button, self.args.mouse_button_2) and pressed:
+            self.shooting_mode = False
+
         # Print button press for debugging purposes
         if self.args.print_button:
             print(f'button  {button.name} pressed')
@@ -143,7 +149,10 @@ class AimBot:
     def lock_target(self, target_sort_list):
         if len(target_sort_list) > 0 and self.locking:
             move_rel_x, move_rel_y, move_dis = self.get_move_dis(target_sort_list)
-            mouse_move(move_rel_x, move_rel_y) # //2 for solving the shaking problem when
+            mouse_move(move_rel_x, move_rel_y)
+
+            if self.shooting_mode and move_dis < self.args.max_shoot_dis:
+                self.controller.click(Button.left, 1)
         self.pidx(0), self.pidy(0)
 
     def visualization(self, args, queue):
