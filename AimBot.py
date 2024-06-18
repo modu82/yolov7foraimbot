@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pyautogui
 import argparse
-from pynput.mouse import Button, Listener
+from pynput.mouse import Button, Listener,Controller
 import cv2
 from mss.windows import MSS as mss
 from rich import print
@@ -94,7 +94,7 @@ class AimBot:
                 print('OFF')
 
         if button == getattr(Button, self.args.mouse_button_1) and pressed:
-            self.shooting_mode = True  # 启用自动射击模式
+            self.shooting_mode = True
         elif button == getattr(Button, self.args.mouse_button_2) and pressed:
             self.shooting_mode = False
 
@@ -119,12 +119,15 @@ class AimBot:
     def sort_target(self, boxes, confidences, classes):
         target_sort_list = []
         for box, conf, cls in zip(boxes, confidences, classes):
-            label = self.args.label_list[cls]
+            # 确保cls是整数
+            cls_index = int(cls)  # 如果cls是一个NumPy标量，这将会正常工作
+            label = self.args.label_list[cls_index]
             x1, y1, x2, y2 = box.tolist()
             target_x, target_y = (x1 + x2) / 2, (y1 + y2) / 2 - self.args.pos_factor * (y2 - y1)
             move_dis = ((target_x - self.detect_center_x) ** 2 + (target_y - self.detect_center_y) ** 2) ** (1 / 2)
             if label in self.args.enemy_list and conf >= self.args.conf and move_dis < self.args.max_lock_dis:
-                target_info = {'target_x': target_x, 'target_y': target_y, 'move_dis': move_dis, 'label': label, 'conf': conf}
+                target_info = {'target_x': target_x, 'target_y': target_y, 'move_dis': move_dis, 'label': label,
+                               'conf': conf}
                 target_sort_list.append(target_info)
         # Sort the list by label and then by distance
         return sorted(target_sort_list, key=lambda x: (x['label'], x['move_dis']))
